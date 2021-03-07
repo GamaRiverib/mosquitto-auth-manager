@@ -1,0 +1,11 @@
+# Exclude compiled .js files
+build/
+
+# Exclude logs
+logs/
+
+# Exclude dependencies
+node_modules/
+
+# Exclude test data
+data/
