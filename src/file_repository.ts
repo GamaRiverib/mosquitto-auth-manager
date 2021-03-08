@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "fs";
+
 import stringify = require("json-stringify-safe");
 import { ID } from "./entity";
 import { MosquittoAuthRepository } from "./repository";
@@ -15,9 +16,9 @@ export class MosquittoAuthFileRepository implements MosquittoAuthRepository {
   private static LOCK = false;
   private static QUEUE: (() => Promise<void>)[] = [];
 
-  constructor(private userFile: string, private rulesFile: string) {
+  constructor(private usersFile: string, private rulesFile: string) {
     try {
-      const usersContents: Buffer = readFileSync(userFile);
+      const usersContents: Buffer = readFileSync(usersFile);
       this.users = JSON.parse(usersContents.toString()) as UserEntity[];
       const rulesContents: Buffer = readFileSync(rulesFile);
       this.rules = JSON.parse(rulesContents.toString()) as RuleEntity[];
@@ -34,7 +35,7 @@ export class MosquittoAuthFileRepository implements MosquittoAuthRepository {
     return new Promise<R>((resolve, reject) => {
       const name = fn.name;
       const item = async (): Promise<void> => {
-        console.debug("Running queue item", {  function: name, params });
+        // console.debug("Running queue item", {  function: name, params });
         try {
           const response = await fn.apply(context, params);
           resolve(response);
@@ -56,7 +57,7 @@ export class MosquittoAuthFileRepository implements MosquittoAuthRepository {
       try {
         await this.writeItems();
       } catch (reason) {
-        console.error("Error writing to file", { error: reason });
+        // console.error("Error writing to file", { error: reason });
       }
       return;
     }
@@ -64,9 +65,9 @@ export class MosquittoAuthFileRepository implements MosquittoAuthRepository {
       MosquittoAuthFileRepository.LOCK = true;
       await item();
     } catch (error) {
-      console.error("Error running function", { item });
+      // console.error("Error running function", { item });
     } finally {
-      console.debug("Running queue item done");
+      // console.debug("Running queue item done");
       MosquittoAuthFileRepository.LOCK = false;
       this.dequeueFunction();
     }
@@ -74,28 +75,36 @@ export class MosquittoAuthFileRepository implements MosquittoAuthRepository {
 
   private async writeItems(): Promise<void> {
     const i = INDENTED ? 2 : 0;
-    writeFileSync(this.userFile, stringify(this.users, null, i));
+    writeFileSync(this.usersFile, stringify(this.users, null, i));
     writeFileSync(this.rulesFile, stringify(this.rules, null, i));
   }
 
+  private getUsersReadOnly(): UserEntity[] {
+    return JSON.parse(JSON.stringify(this.users));
+  }
+
+  private getRulesReadOnly(): RuleEntity[] {
+    return JSON.parse(JSON.stringify(this.rules));
+  }
+
   async findUsers(query?: string, page?: number, limit?: number): Promise<UserEntity[]> {
-    let users = this.users;
+    let users = this.getUsersReadOnly() || [];
     if (query) {
       users = users.filter(u => u.username.indexOf(query) >= 0);
     }
     if (limit) {
       page = page || 1;
-      users = users.slice((page * limit) - 1, limit);
+      users = users.slice((page - 1) * limit, limit);
     }
     return users;
   }
 
   async getUserById(id: ID): Promise<UserEntity> {
-    return this.users.find(u => u.id === id);
+    return (this.getUsersReadOnly() || []).find(u => u.id === id);
   }
 
   async getUser(username: string): Promise<UserEntity> {
-    return this.users.find(u => u.username === username);
+    return (this.getUsersReadOnly() || []).find(u => u.username === username);
   }
 
   private async _createUser(user: User): Promise<UserEntity> {
@@ -132,11 +141,11 @@ export class MosquittoAuthFileRepository implements MosquittoAuthRepository {
   }
 
   async getRules(): Promise<RuleEntity[]> {
-    return this.rules;
+    return this.getRulesReadOnly() || [];
   }
 
   async getRuleById(id: ID): Promise<RuleEntity> {
-    return this.rules.find(r => r.id === id);
+    return (this.getRulesReadOnly() || []).find(r => r.id === id);
   }
 
   private async _createRule(rule: Rule): Promise<RuleEntity> {

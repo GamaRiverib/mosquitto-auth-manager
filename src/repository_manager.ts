@@ -5,15 +5,8 @@ import { Rule, RuleEntity } from "./rule";
 import { User, UserEntity } from "./user";
 import { getPasswordHash } from "./passwords_file";
 
-let manager: MosquittoAuthRepositoryManager | null = null;
-
 export function getRepositoryManager(repository: MosquittoAuthRepository): MosquittoAuthRepositoryManager {
-
-  if (manager === null) {
-    manager = new MosquittoAuthRepositoryManagerImpl(repository);
-  }
-  return manager;
-
+  return new MosquittoAuthRepositoryManagerImpl(repository);
 }
 
 export interface Paging {
@@ -45,21 +38,33 @@ class MosquittoAuthRepositoryManagerImpl implements MosquittoAuthRepositoryManag
   }
 
   async getUserList(paging?: Paging): Promise<UserEntity[]> {
-    const { query, page, limit  } = paging;
+    let query: string, page: number, limit: number;
+    if (paging) {
+      query = paging.query;
+      page = paging.page;
+      limit = paging.limit;
+    }
     const entities = await this.repository.findUsers(query, page, limit);
-    const users = entities.map(e => e.password = undefined);
+    const users = entities.map(e => {
+      e.password = undefined;
+      return e;
+    });
     return users;
   }
 
   async getUser(id: ID): Promise<UserEntity> {
     const entity = await this.repository.getUserById(id);
-    entity.password = undefined;
+    if (entity) {
+      entity.password = undefined;
+    }
     return entity;
   }
 
   async findUserByUsername(username: string): Promise<UserEntity> {
     const entity = await this.repository.getUser(username);
-    entity.password = undefined;
+    if (entity) {
+      entity.password = undefined;
+    }
     return entity;
   }
 

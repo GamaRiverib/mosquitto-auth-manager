@@ -20,8 +20,8 @@ export function getAclFile(filePath: string): AclFile {
   return new AclFileImpl(filePath);
 }
 
-const USER_LINE_PATTERN = /^(?<prefix>user){1}\s*(?<username>(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._-]+(?<![_.])){1})$/gs;
-const RULE_LINE_PATTERN = /^(?<type>pattern|topic){1}\s*(?<acc>write|read|readwrite)?\s*(?<value>[a-zA-Z0-9#+_\/]*)$/gs;
+const USER_LINE_PATTERN = /^(user){1}(\s)*(?<username>(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._-]+(?<![_.])){1}$/gs;
+const RULE_LINE_PATTERN = /^(?<type>pattern|topic){1}(\s)*(?<acc>write|read|readwrite)?(\s)*(?<value>[a-zA-Z0-9#+_\/]*)$/gs;
 
 class AclFileImpl implements AclFile {
 
