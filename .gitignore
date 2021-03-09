@@ -9,3 +9,5 @@ node_modules/
 
 # Exclude test data
 data/
+
+debug.log

@@ -1,9 +1,10 @@
 export enum Acc {
+  NONE=0,
   READ=1,
   WRITE=2,
   READ_WRITE=3,
-  DENY=4,
-  SUBCRIBE=5
+  SUBSCRIBE=4,
+  DENY=5
 }
 
 export function getAccAsString(acc: Acc): string {
@@ -16,10 +17,10 @@ export function getAccAsString(acc: Acc): string {
       return "READWRITE";
     case Acc.DENY:
       return "DENY";
-    case Acc.SUBCRIBE:
+    case Acc.SUBSCRIBE:
       return "SUBSCRIBE";
     default:
-      return undefined;
+      return "NONE";
   }
 }
 
@@ -34,12 +35,12 @@ export function getAccFromString(acc: string): Acc {
       return Acc.WRITE;
     case "readwrite":
       return Acc.READ_WRITE;
+    case "subscribe":
+      return Acc.SUBSCRIBE;
     case "deny":
       return Acc.DENY;
-    case "subscribe":
-      return Acc.SUBCRIBE;
     default:
-      return undefined;
+      return Acc.NONE;
   }
 
 }
