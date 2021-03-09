@@ -45,7 +45,6 @@ class AclFileImpl implements AclFile {
         const username = exec.groups.username;
         const password = "";
         const user: User = { username, password };
-        console.log({ user });
         userAcl = this.userRules.push(user) - 1;
       } else if (line.match(RULE_LINE_PATTERN)) {
         const exec = RULE_LINE_PATTERN.exec(line);
@@ -101,8 +100,6 @@ class AclFileImpl implements AclFile {
         if (error) {
           return reject(error);
         }
-        console.log(JSON.stringify(this.userRules, null, 2));
-        console.log({ rules: this.rules });
         return resolve();
       }, filePath);
     });
