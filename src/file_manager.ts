@@ -9,11 +9,13 @@ const MOSQUITTO_ACL_FILE_PATH = process.env.MOSQUITTO_ACL_FILE_PATH || "/etc/mos
 
 let manager: MosquittoAuthFileManager | null = null;
 
-export function getFileManager(): MosquittoAuthFileManager {
+export async function getFileManager(): Promise<MosquittoAuthFileManager> {
 
   if (manager === null) {
     const passwordsFile = getPasswordsFile(MOSQUITTO_PASSWORDS_FILE_PATH);
     const aclFile = getAclFile(MOSQUITTO_ACL_FILE_PATH);
+    await passwordsFile.load();
+    await aclFile.load();
     manager = new MosquittoAuthFileManagerImpl(passwordsFile, aclFile);
   }
   return manager;
@@ -51,8 +53,9 @@ class MosquittoAuthFileManagerImpl implements MosquittoAuthFileManager {
     user.password = getPasswordHash(user.password);
     await this.passwordsFile.addUserPassword(user);
     await this.aclsFile.addUser(user.username, user.acls);
-    user.password = undefined;
-    return user;
+    const copy = JSON.parse(JSON.stringify(user));
+    copy.password = undefined;
+    return copy;
   }
 
   updateUserPassword(username: string, password: string): Promise<void> {

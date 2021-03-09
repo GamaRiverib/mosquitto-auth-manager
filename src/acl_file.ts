@@ -6,6 +6,7 @@ import { Rule, RuleType } from "./rule";
 import { User } from "./user";
 
 export interface AclFile {
+  load(filePath?: string): Promise<void>;
   getUserList(): Promise<User[]>;
   addUser(username: string, acls?: UserRule[]): Promise<void>;
   removeUser(username: string): Promise<void>;
@@ -21,7 +22,7 @@ export function getAclFile(filePath: string): AclFile {
 }
 
 const USER_LINE_PATTERN = /^(user){1}(\s)*(?<username>(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._-]+(?<![_.])){1}$/gs;
-const RULE_LINE_PATTERN = /^(?<type>pattern|topic){1}(\s)*(?<acc>write|read|readwrite)?(\s)*(?<value>[a-zA-Z0-9#+_\/]*)$/gs;
+const RULE_LINE_PATTERN = /^(?<type>topic|pattern){1}(\s)*(?<acc>write|read|readwrite|deny|subscribe)?(\s)*(?<value>[a-zA-Z0-9#%+_\/]*)$/gs;
 
 class AclFileImpl implements AclFile {
 
@@ -31,40 +32,46 @@ class AclFileImpl implements AclFile {
   constructor(private filePath: string) {
     this.userRules = [];
     this.rules = [];
-    this.readFile();
   }
 
-  private readFile(): void {
-    try {
-      eachLine(this.filePath, line => {
-        if (line.match(USER_LINE_PATTERN)) {
-          console.log("user", line);
-
-          const exec = USER_LINE_PATTERN.exec(line);
-          if (!exec || !exec.groups) {
-            return;
-          }
-          const username = exec.groups.username;
-          const password = "";
-          this.userRules.push({ username, password });
-        } else if (line.match(RULE_LINE_PATTERN)) {
-          console.log("rule", line);
-
-          const exec = RULE_LINE_PATTERN.exec(line);
-          if (!exec || exec.groups) {
-            return;
-          }
-          const type = exec.groups.type as RuleType;
-          const acc = getAccFromString(exec.groups.acc);
-          const value = exec.groups.value;
-          this.rules.push({ type, value, acc });
+  private readFile(cb: (err: any) => void, filePath?: string): void {
+    let userAcl = -1;
+    eachLine(filePath || this.filePath, line => {
+      if (line.match(USER_LINE_PATTERN)) {
+        const exec = USER_LINE_PATTERN.exec(line);
+        if (!exec || !exec.groups) {
+          return;
         }
-      });
-      console.log(this.userRules);
-      console.log(this.rules);
-    } catch (error) {
-      console.log(error);
-    }
+        const username = exec.groups.username;
+        const password = "";
+        const user: User = { username, password };
+        console.log({ user });
+        userAcl = this.userRules.push(user) - 1;
+      } else if (line.match(RULE_LINE_PATTERN)) {
+        const exec = RULE_LINE_PATTERN.exec(line);
+        if (!exec || !exec.groups) {
+          return;
+        }
+        const type = exec.groups.type as RuleType;
+        const acc = getAccFromString(exec.groups.acc);
+        const value = exec.groups.value;
+        if (!acc || !value) {
+          return;
+        }
+        if (userAcl >= 0) {
+          const acl: UserRule = { topic: value, acc };
+          if (!this.userRules[userAcl].acls) {
+            this.userRules[userAcl].acls = [];
+          }
+          this.userRules[userAcl].acls.push(acl);
+        } else {
+          const rule: Rule = { type, value, acc };
+          this.rules.push(rule);
+        }
+      } else {
+        userAcl = -1;
+      }
+    }, cb);
   }
 
   private saveFile(): void {
@@ -74,13 +81,13 @@ class AclFileImpl implements AclFile {
         content += `user ${u.username}\r\n`;
         if (u.acls) {
           u.acls.forEach(a => {
-            content += `topic ${getAccAsString(a.acc).toLowerCase()} ${a.topic}`;
+            content += `topic ${getAccAsString(a.acc).toLowerCase()} ${a.topic}\r\n`;
           });
         }
         content += "\r\n";
       });
       this.rules.forEach(r => {
-        content += `${r.type} ${ r.acc ? getAccAsString(r.acc).toLowerCase() : "" } ${r.value}`;
+        content += `${r.type} ${ r.acc ? getAccAsString(r.acc).toLowerCase() : "" } ${r.value}\r\n`;
       });
       writeFileSync(this.filePath, content);
     } catch (error) {
@@ -88,11 +95,28 @@ class AclFileImpl implements AclFile {
     }
   }
 
+  load(filePath?: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.readFile((error) => {
+        if (error) {
+          return reject(error);
+        }
+        console.log(JSON.stringify(this.userRules, null, 2));
+        console.log({ rules: this.rules });
+        return resolve();
+      }, filePath);
+    });
+  }
+
   async getUserList(): Promise<User[]> {
     return this.userRules;
   }
 
   async addUser(username: string, acls?: UserRule[]): Promise<void> {
+    const index = this.userRules.findIndex(u => u.username === username);
+    if (index >= 0) {
+      throw new Error(`Username ${username} already exists`);
+    }
     const password = undefined;
     this.userRules.push({ username, password, acls });
     this.saveFile();
