@@ -174,7 +174,7 @@ getFileManager().then(manager => {
   
       it("Debería obtener la lista de reglas", async () => {
         const rules = await manager.getRules()
-        chai.assert(rules.length === 5, "El resultado debería tener 5 elementos");
+        chai.assert(rules.length > 0, "El resultado debería tener elementos");
         rules.forEach(r => {
           r.should.have.property("type");
           r.should.have.property("value");

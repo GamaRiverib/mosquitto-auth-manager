@@ -3,7 +3,7 @@ import { ID } from "./entity";
 import { MosquittoAuthRepository } from "./repository";
 import { Rule, RuleEntity } from "./rule";
 import { User, UserEntity } from "./user";
-import { getPasswordHash } from "./passwords_file";
+import { getPBKDF2Password } from "./passwords_file";
 
 export function getRepositoryManager(repository: MosquittoAuthRepository): MosquittoAuthRepositoryManager {
   return new MosquittoAuthRepositoryManagerImpl(repository);
@@ -73,7 +73,7 @@ class MosquittoAuthRepositoryManagerImpl implements MosquittoAuthRepositoryManag
     if (current) {
       throw new Error(`Username "${user.username}" already exists`);
     }
-    user.password = getPasswordHash(user.password);
+    user.password = getPBKDF2Password(user.password);
     const entity = await this.repository.createUser(user);
     entity.password = undefined;
     return entity;
@@ -84,7 +84,7 @@ class MosquittoAuthRepositoryManagerImpl implements MosquittoAuthRepositoryManag
     if (!entity) {
       throw new Error(`User with ID "${id}" not found`);
     }
-    entity.password = getPasswordHash(password);
+    entity.password = getPBKDF2Password(password);
     return this.repository.updateUser(entity);
   }
 

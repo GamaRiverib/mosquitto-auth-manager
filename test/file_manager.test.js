@@ -157,7 +157,7 @@ build_1.getFileManager().then(manager => {
         describe("getRules", () => {
             it("Debería obtener la lista de reglas", () => __awaiter(void 0, void 0, void 0, function* () {
                 const rules = yield manager.getRules();
-                chai.assert(rules.length === 5, "El resultado debería tener 5 elementos");
+                chai.assert(rules.length > 0, "El resultado debería tener elementos");
                 rules.forEach(r => {
                     r.should.have.property("type");
                     r.should.have.property("value");

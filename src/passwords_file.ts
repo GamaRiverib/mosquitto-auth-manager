@@ -2,6 +2,7 @@ import { writeFileSync } from "fs";
 import { randomBytes } from "crypto";
 import { eachLine } from "line-reader";
 import { pbkdf2Sync } from "pbkdf2";
+import MosquittoPasswd = require("mosquitto-passwd");
 
 import { UserPassword } from "./user";
 
@@ -23,7 +24,12 @@ export function getPasswordsFile(filePath: string): PasswordsFile {
   return new PasswordsFileImpl(filePath);
 }
 
-export function getPasswordHash(password: string): string {
+export async function getMosquittoPasswd(password: string): Promise<string> {
+  const entry = await MosquittoPasswd("a", password)
+  return entry.split(":")[1];
+}
+
+export function getPBKDF2Password(password: string): string {
   const salt = randomBytes(SALT_SIZE).toString(SALT_ENCODING);
   const hash = pbkdf2Sync(password, salt, ITERATIONS, KEYLEN, ALGORITHM).toString(SALT_ENCODING);
   return `PBKDF2$${ALGORITHM}$${ITERATIONS}$${salt}$${hash}`;
@@ -87,7 +93,7 @@ class PasswordsFileImpl implements PasswordsFile {
 
   async updateUserPassword(username: string, password: string): Promise<void> {
     const index = this.userPasswords.findIndex(u => u.username === username);
-    if (index >= 0) {
+    if (index < 0) {
       throw new Error(`Username ${username} does not exists`);
     }
     this.userPasswords[index].password = password;

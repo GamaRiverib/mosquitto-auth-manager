@@ -11,3 +11,7 @@ node_modules/
 data/
 
 debug.log
+
+# Exclude test files
+test/**/*.js
+test/data/*.json

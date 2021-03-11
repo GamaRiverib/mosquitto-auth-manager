@@ -1,6 +1,6 @@
 import { UserRule } from "./user_rule";
 import { AclFile, getAclFile } from "./acl_file";
-import { getPasswordHash, getPasswordsFile, PasswordsFile } from "./passwords_file";
+import { getPasswordsFile, PasswordsFile, getMosquittoPasswd } from "./passwords_file";
 import { Rule } from "./rule";
 import { User } from "./user";
 
@@ -50,7 +50,7 @@ class MosquittoAuthFileManagerImpl implements MosquittoAuthFileManager {
   }
 
   async createUser(user: User): Promise<User> {
-    user.password = getPasswordHash(user.password);
+    user.password = await getMosquittoPasswd(user.password);
     await this.passwordsFile.addUserPassword(user);
     await this.aclsFile.addUser(user.username, user.acls);
     const copy = JSON.parse(JSON.stringify(user));
@@ -58,8 +58,9 @@ class MosquittoAuthFileManagerImpl implements MosquittoAuthFileManager {
     return copy;
   }
 
-  updateUserPassword(username: string, password: string): Promise<void> {
-    return this.passwordsFile.updateUserPassword(username, getPasswordHash(password));
+  async updateUserPassword(username: string, password: string): Promise<void> {
+    const pass = await getMosquittoPasswd(password);
+    return this.passwordsFile.updateUserPassword(username, pass);
   }
 
   addUserRule(username: string, rule: UserRule): Promise<void> {

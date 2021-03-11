@@ -10,7 +10,7 @@ exports.users = [
     {
         id: short_uuid_1.generate(),
         username: "user1",
-        password: build_1.getPasswordHash("test1"),
+        password: build_1.getPBKDF2Password("test1"),
         acls: [{
                 acc: build_1.Acc.READ,
                 topic: "users/r/user1"
@@ -18,19 +18,19 @@ exports.users = [
     }, {
         id: short_uuid_1.generate(),
         username: "user2",
-        password: build_1.getPasswordHash("test2")
+        password: build_1.getPBKDF2Password("test2")
     }, {
         id: short_uuid_1.generate(),
         username: "user3",
-        password: build_1.getPasswordHash("test3")
+        password: build_1.getPBKDF2Password("test3")
     }, {
         id: short_uuid_1.generate(),
         username: "user4",
-        password: build_1.getPasswordHash("test4")
+        password: build_1.getPBKDF2Password("test4")
     }, {
         id: short_uuid_1.generate(),
         username: "user5",
-        password: build_1.getPasswordHash("test5")
+        password: build_1.getPBKDF2Password("test5")
     }
 ];
 fs_1.writeFileSync(path_1.join(directory, "1.users.repository.json"), JSON.stringify(exports.users));

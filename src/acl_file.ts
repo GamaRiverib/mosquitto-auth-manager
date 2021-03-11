@@ -22,7 +22,7 @@ export function getAclFile(filePath: string): AclFile {
 }
 
 const USER_LINE_PATTERN = /^(user){1}(\s)*(?<username>(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._-]+(?<![_.])){1}$/gs;
-const RULE_LINE_PATTERN = /^(?<type>topic|pattern){1}(\s)*(?<acc>write|read|readwrite|deny|subscribe)?(\s)*(?<value>[a-zA-Z0-9#%+_\/]*)$/gs;
+const RULE_LINE_PATTERN = /^(?<type>topic|pattern){1}(\s)*((?<acc>write|read|readwrite|deny|subscribe)?(\s)*)?(?<value>[a-zA-Z0-9$#%+_\/]*)$/gs;
 
 class AclFileImpl implements AclFile {
 
@@ -54,7 +54,7 @@ class AclFileImpl implements AclFile {
         const type = exec.groups.type as RuleType;
         const acc = getAccFromString(exec.groups.acc);
         const value = exec.groups.value;
-        if (!acc || !value) {
+        if (!value) {
           return;
         }
         if (userAcl >= 0) {
@@ -80,7 +80,11 @@ class AclFileImpl implements AclFile {
         content += `user ${u.username}\r\n`;
         if (u.acls) {
           u.acls.forEach(a => {
-            content += `topic ${getAccAsString(a.acc).toLowerCase()} ${a.topic}\r\n`;
+            content += `topic`;
+            if (a.acc) {
+              content += ` ${getAccAsString(a.acc).toLowerCase()}`;
+            }
+            content += ` ${a.topic}\r\n`
           });
         }
         content += "\r\n";
